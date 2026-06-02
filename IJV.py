@@ -4,6 +4,8 @@ import requests
 import math
 import re
 import io
+import os
+import base64
 from datetime import datetime, timedelta, timezone
 from jinja2 import Environment, BaseLoader
 from weasyprint import HTML
@@ -38,6 +40,7 @@ def php_date(fmt, timestamp):
         if fmt == 'H.i': return dt.strftime('%H.%M')
         if fmt == 'dMy': return dt.strftime('%d%b%y').upper()
         if fmt == 'Y-m-d': return dt.strftime('%Y-%m-%d')
+        if fmt == 'd-m-y': return dt.strftime('%d-%m-%y')
         return dt.strftime('%Y-%m-%d')
     except: return ""
 
@@ -205,6 +208,15 @@ def dashboard():
 
     st.title("OFP & Briefing Package Generator")
     
+    # Membaca Logo untuk Template
+    logo_path = "FDCGA.png"
+    logo_base64 = ""
+    if os.path.exists(logo_path):
+        with open(logo_path, "rb") as image_file:
+            logo_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+    else:
+        st.warning(f"⚠️ File gambar '{logo_path}' tidak ditemukan di direktori proyek. Logo di PDF tidak akan termuat.")
+
     # KOTAK INPUT SIMBRIEF ID
     sb_userid = st.text_input("Masukkan SimBrief User ID:", value="656734")
     
@@ -230,7 +242,7 @@ def dashboard():
         with st.spinner("⚙️ Memproses data dan merender PDF..."):
             try:
                 # ==========================================
-                # 3. DATA PREPARATION (Dari Colab Anda)
+                # 3. DATA PREPARATION
                 # ==========================================
                 data_obj = dict_to_obj(data_json)
                 
@@ -326,7 +338,7 @@ def dashboard():
                 except: foo_id = 1234
                 
                 # ==========================================
-                # FULL TEMPLATE STRING 
+                # FULL TEMPLATE STRING DENGAN DESAIN BARU
                 # ==========================================
                 template_str = """
 <!doctype html>
@@ -339,33 +351,34 @@ def dashboard():
         @page {
             margin: 0.50cm 1.38cm 0.81cm 0.92cm;
             size: A4;
-            font-family: "Courier New", Courier, monospace;
+            font-family: Courier, monospace;
         }
 
         /* LANDSCAPE PAGE DEFINITION FOR NOTAMS AND MAPS */
         @page landscape-page {
             size: A4 landscape;
             margin: 0.5cm;
-            @bottom-right { content: "PAGE " counter(page) " OF " counter(pages); font-size: 8pt; font-family: "Courier New", monospace; color: #7D7D7D;}
-            @top-right { content: "PACKAGE GIA{{data.general.flight_number}}"; font-size: 8pt; font-family: "Courier New", monospace; color: #7D7D7D;}
+            @bottom-right { content: "PAGE " counter(page) " OF " counter(pages); font-size: 8pt; font-family: Courier, monospace; color: #7D7D7D;}
+            @top-right { content: "PACKAGE GIA{{data.general.flight_number}}"; font-size: 8pt; font-family: Courier, monospace; color: #7D7D7D;}
         }
 
         body {
-            font-family: "Courier New", Courier, monospace;
+            font-family: Courier, monospace;
             font-size: 10.5pt;
             line-height: 12pt;
             margin: 0;
         }
 
-        .header { position: fixed; top: -10px; left: 0; right: 0; text-align: right; font-size: 8pt; color: #7D7D7D; }
-        .footer { position: fixed; bottom: -20px; left: 0; right: 0; height: 20px; text-align: right; font-size: 8pt; color: #7D7D7D; }
-        .page-number:before { content: "GARUDA INDONESIA BRIEF PAGE " counter(page) " of " counter(pages); }
+        /* HEADER & FOOTER UPDATED UNTUK FORMAT BARU */
+        .header { position: fixed; top: -10px; left: 0; right: 0; text-align: right; font-size: 8pt; color: #7D7D7D; font-family: Courier, monospace; }
+        .footer { position: fixed; bottom: -20px; left: 0; right: 0; height: 20px; text-align: right; font-size: 8pt; color: #7D7D7D; font-family: Courier, monospace; }
+        .page-number:before { content: "BRIEFING TEXT {{data.general.icao_airline}}{{data.general.flight_number}}-{{php_date('d-m-y', data.times.sched_out)}}-{{php_date('Hi', data.times.sched_out)}}-{{data.origin.icao_code}} PAGE " counter(page) " OF " counter(pages); }
         .page-number-footer:before { content: "PAGE " counter(page) " of " counter(pages); }
 
         pre {
             margin: 0;
             white-space: pre-wrap;
-            font-family: "Courier New", Courier, monospace;
+            font-family: Courier, monospace;
             display: block;
             font-size: 11pt;
             line-height: 13.5pt;
@@ -397,7 +410,7 @@ def dashboard():
             padding: 10px;
             text-align: center;
             margin-top: 15px;
-            font-family: sans-serif;
+            font-family: Courier, monospace;
             font-size: 9pt;
             page-break-inside: avoid;
         }
@@ -405,7 +418,7 @@ def dashboard():
         /* Landscape Section (NOTAM & Maps) */
         .landscape-section {
             page: landscape-page;
-            font-family: "Courier New", Courier, monospace;
+            font-family: Courier, monospace;
             font-size: 10.5pt;
         }
 
@@ -460,10 +473,10 @@ def dashboard():
             border-bottom: 1px solid #ccc;
             padding-bottom: 2px;
             margin-bottom: 5px;
-            font-family: "Courier New", monospace;
+            font-family: Courier, monospace;
         }
         .wx-data {
-            font-family: "Courier New", monospace;
+            font-family: Courier, monospace;
             font-size: 10.5pt;
             white-space: pre-wrap;
         }
@@ -482,7 +495,7 @@ def dashboard():
         }
         .map-image {
             max-width: 100%;
-            max-height: 17cm; /* Fit A4 Landscape height roughly */
+            max-height: 17cm;
             object-fit: contain;
             border: 1px solid #000;
         }
@@ -496,9 +509,10 @@ def dashboard():
     <div class="footer"><div class="page-number-footer"></div></div>
 
     <div style="text-align: center; margin-bottom: 15px;">
-        <img src="" width="2"><br>
-        <b>FLIGHT DISPATCH CENTER</b><br>
-        <span style="font-size: 14pt; font-weight: bold;">BRIEFING TEXT</span><br>
+        {% if logo_base64 %}
+        <img src="data:image/png;base64,{{logo_base64}}" style="max-height: 60px; width: auto;"><br>
+        {% endif %}
+        <span style="font-size: 15pt; font-family: Courier, monospace;">BRIEFING TEXT</span><br>
         {{data.general.icao_airline}}{{data.general.flight_number}} {{data.origin.icao_code}}-{{data.destination.icao_code}} {{data.aircraft.reg}} {{php_date('d/m/y', data.times.sched_out)}}
     </div>
 
@@ -930,7 +944,8 @@ REQUEST NO. {{data.params.request_id[-5:]}} / REV NBR {{data.general.release}}
                     'abs': abs, 'int': int, 'str_replace': lambda o, n, s: str(s).replace(o, n),
                     'wordwrap': php_wordwrap, 'fooId': foo_id, 'etops_str': etops_alternates_str,
                     'notam_groups': notam_groups, 'alternates': alternates_list,
-                    'weather_info': weather_info, 'map_images': map_images, 'navlog_alt1': navlog_alt1
+                    'weather_info': weather_info, 'map_images': map_images, 'navlog_alt1': navlog_alt1,
+                    'logo_base64': logo_base64
                 })
                 
                 template = env.from_string(template_str)
