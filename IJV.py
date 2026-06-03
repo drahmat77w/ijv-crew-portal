@@ -11,7 +11,7 @@ from jinja2 import Environment, BaseLoader
 from weasyprint import HTML
 
 # ---------------------------------------------------------
-# KONFIGURASI HALAMAN (Harus dipanggil pertama)
+# KONFIGURASI HALAMAN (Harus dipanggil paling awal)
 # ---------------------------------------------------------
 st.set_page_config(page_title="IJV Crew Portal", page_icon="✈️", layout="wide", initial_sidebar_state="collapsed")
 
@@ -189,107 +189,95 @@ def login_page():
     bg_base64 = get_image_base64("bg.png")
     ijv_logo_base64 = get_image_base64("IJV.png")
     
-    # Menghapus default padding Streamlit dan mengatur layout split-screen
     st.markdown(f"""
     <style>
-        /* Menghilangkan header & padding bawaan Streamlit */
-        .block-container {{
-            padding-top: 0rem !important;
-            padding-bottom: 0rem !important;
-            padding-left: 0rem !important;
-            padding-right: 0rem !important;
+        /* 1. Paksa halaman penuh tanpa margin/padding */
+        .appview-container .main .block-container {{
+            padding: 0rem !important;
             max-width: 100% !important;
+            overflow: hidden !important;
         }}
-        header, footer {{ visibility: hidden; }}
+        header[data-testid="stHeader"] {{ visibility: hidden !important; height: 0 !important; }}
+        footer {{ visibility: hidden !important; }}
         
-        /* Mengatur Tinggi Penuh */
-        .st-emotion-cache-1jicfl2, .st-emotion-cache-16txtl3 {{
-            padding: 0 !important;
+        /* 2. Mengatur Container Column agar tidak ada jeda */
+        div[data-testid="stHorizontalBlock"] {{
+            gap: 0rem !important;
+            height: 100vh !important;
+            align-items: stretch !important;
         }}
-
-        /* KOLOM KIRI (Form Login 30%) */
-        div[data-testid="column"]:nth-of-type(1) {{
-            background-color: #FFFFFF;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 8% 5% !important;
-            border-right: 1px solid #f0f0f0;
+        
+        /* 3. KOLOM KIRI (Form Putih) - Paksa prioritas tertinggi */
+        div[data-testid="column"]:nth-child(1) {{
+            background-color: #FFFFFF !important;
+            padding: 5% 4% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: center !important;
+            height: 100vh !important;
             z-index: 10;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }}
         
-        /* KOLOM KANAN (Gambar Background 70%) */
-        div[data-testid="column"]:nth-of-type(2) {{
-            background-image: url('data:image/png;base64,{bg_base64}');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-color: #001F3F; /* Fallback color */
-            height: 100vh;
-            margin-left: -1rem; /* Menghilangkan gap default streamlit */
+        /* 4. KOLOM KANAN (Gambar Latar Belakang) */
+        div[data-testid="column"]:nth-child(2) {{
+            background-image: url('data:image/png;base64,{bg_base64}') !important;
+            background-size: cover !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            background-color: #02203c !important; /* Warna backup jika gambar gagal muat */
+            height: 100vh !important;
         }}
 
-        /* Hapus border kotak form bawaan st.form */
+        /* 5. Membersihkan Form Bawaan */
         div[data-testid="stForm"] {{
             border: none !important;
             padding: 0 !important;
+            background-color: transparent !important;
         }}
 
-        /* Styling Input Field */
+        /* 6. Kotak Input Mirip Web Asli */
         .stTextInput input {{
-            border-radius: 4px !important;
-            border: 1px solid #d3d3d3 !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 5px !important;
+            padding: 0.6rem !important;
         }}
         
-        /* Styling Tombol Login (Warna Biru eCrew) */
-        div[data-testid="stForm"] button {{
+        /* 7. Tombol Biru Log in */
+        div[data-testid="stFormSubmitButton"] button {{
             background-color: #2196F3 !important;
             color: white !important;
             border: none !important;
-            border-radius: 4px !important;
-            font-weight: 500 !important;
-            padding: 0.5rem 1rem !important;
+            border-radius: 5px !important;
+            font-weight: bold !important;
+            width: 100% !important;
+            padding: 0.5rem !important;
+            transition: background-color 0.3s;
         }}
-        div[data-testid="stForm"] button:hover {{
+        div[data-testid="stFormSubmitButton"] button:hover {{
             background-color: #1976D2 !important;
-        }}
-
-        /* Container untuk Logo di Kiri */
-        .login-logo {{
-            text-align: center;
-            margin-bottom: 40px;
-            margin-top: 20px;
-        }}
-        
-        /* Container untuk Footer di Kiri */
-        .login-footer {{
-            position: absolute;
-            bottom: 20px;
-            width: 90%;
-            text-align: center;
-            font-size: 11px;
-            color: #888;
-            font-family: Arial, sans-serif;
         }}
     </style>
     """, unsafe_allow_html=True)
 
-    # Layouting: 1 Bagian kiri, 2.5 bagian kanan
+    # Proporsi kolom: Kiri 1, Kanan 2.5 (Agar lebar gambar dominan seperti contoh)
     col1, col2 = st.columns([1, 2.5])
     
     with col1:
-        # Menampilkan Logo IJV
-        if ijv_logo_base64:
-            st.markdown(f'<div class="login-logo"><img src="data:image/png;base64,{ijv_logo_base64}" style="max-height: 80px; width: auto;"></div>', unsafe_allow_html=True)
-        else:
-            st.markdown("<h2 style='text-align: center; color: #2196F3; margin-bottom:40px;'>IJV Crew</h2>", unsafe_allow_html=True)
+        # Pendorong ke tengah (Top Spacer)
+        st.markdown("<div style='height: 15vh;'></div>", unsafe_allow_html=True)
         
-        # Form Login
+        # LOGO IJV
+        if ijv_logo_base64:
+            st.markdown(f'<div style="text-align: center; margin-bottom: 2rem;"><img src="data:image/png;base64,{ijv_logo_base64}" style="max-width: 180px;"></div>', unsafe_allow_html=True)
+        else:
+            st.markdown("<h1 style='text-align: center; color: #2196F3; margin-bottom: 2rem;'>IJV Crew</h1>", unsafe_allow_html=True)
+        
+        # FORM LOGIN
         with st.form("login_form"):
-            # label_visibility="collapsed" menyembunyikan tulisan di atas text box
             username = st.text_input("Crew ID", placeholder="Crew ID", label_visibility="collapsed")
             password = st.text_input("Password", type="password", placeholder="Password", label_visibility="collapsed")
-            submit = st.form_submit_button("Log in", use_container_width=True)
+            submit = st.form_submit_button("Log in")
             
             if submit:
                 if password == "IJV123" and username != "":
@@ -299,22 +287,30 @@ def login_page():
                 else:
                     st.error("Crew ID atau Password tidak valid!")
         
-        # Tulisan Forgot Password
-        st.markdown("<div style='text-align: right; margin-top: -10px;'><a href='#' style='color: #2196F3; text-decoration: none; font-size: 13px; font-family: Arial, sans-serif;'>Forgot password?</a></div>", unsafe_allow_html=True)
+        # Tulisan Lupa Password
+        st.markdown("<div style='text-align: right; margin-top: 5px;'><a href='#' style='color: #2196F3; text-decoration: none; font-size: 13px; font-family: sans-serif;'>Forgot password?</a></div>", unsafe_allow_html=True)
         
-        # Tulisan Web Footer 
-        st.markdown("<div class='login-footer'>www.indonesiajourneyvirtual.org</div>", unsafe_allow_html=True)
+        # Pendorong Footer ke bawah (Bottom Spacer)
+        st.markdown("<div style='height: 25vh;'></div>", unsafe_allow_html=True)
+        
+        # Footer Web
+        st.markdown("<div style='text-align: center; font-size: 11px; color: #888; font-family: sans-serif;'>www.indonesiajourneyvirtual.org</div>", unsafe_allow_html=True)
 
     with col2:
-        # Kolom ini dikosongkan karena gambar dirender via CSS background (agar full layar)
+        # Kolom ini sengaja dikosongkan agar CSS bisa meletakkan background secara absolut
         st.empty()
 
 # ---------------------------------------------------------
 # DASHBOARD (GENERATOR OFP)
 # ---------------------------------------------------------
 def dashboard():
-    # Menampilkan ulang sidebar yang sempat kita sembunyikan di halaman login
-    st.markdown("<style>.block-container { padding: 3rem 5rem !important; } header {visibility: visible;} </style>", unsafe_allow_html=True)
+    # Mengembalikan padding untuk halaman Dashboard agar rapi kembali
+    st.markdown("""
+    <style>
+        .appview-container .main .block-container { padding: 3rem 5rem !important; } 
+        header[data-testid="stHeader"] { visibility: visible !important; }
+    </style>
+    """, unsafe_allow_html=True)
     
     st.sidebar.title(f"Welcome, {st.session_state.get('username', 'Crew')}")
     if st.sidebar.button("Logout"):
