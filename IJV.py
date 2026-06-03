@@ -332,7 +332,7 @@ def dashboard():
     logo_base64 = get_image_base64(logo_path)
 
     # KOTAK INPUT SIMBRIEF ID
-    sb_userid = st.text_input("Masukkan SimBrief User ID:", value="656734")
+    sb_userid = st.text_input("Masukkan SimBrief User ID:", value="")
     
     if st.button("Generate Flight Plan PDF"):
         if not sb_userid:
