@@ -11,12 +11,12 @@ from jinja2 import Environment, BaseLoader
 from weasyprint import HTML
 
 # ---------------------------------------------------------
-# KONFIGURASI HALAMAN
+# KONFIGURASI HALAMAN (Harus dipanggil pertama)
 # ---------------------------------------------------------
-st.set_page_config(page_title="IJV Crew Portal", page_icon="✈️", layout="wide")
+st.set_page_config(page_title="IJV Crew Portal", page_icon="✈️", layout="wide", initial_sidebar_state="collapsed")
 
 # ---------------------------------------------------------
-# KELAS & FUNGSI HELPER (DARI KODE ANDA)
+# KELAS & FUNGSI HELPER
 # ---------------------------------------------------------
 class DotDict(dict):
     __getattr__ = dict.get
@@ -172,22 +172,124 @@ def php_str_pad(string, length, pad_char=' ', pad_type='left'):
 
 def php_wordwrap(text, width=60, break_str="\n"): return text
 
+# Helper render gambar lokal ke base64 (untuk web layout)
+def get_image_base64(path):
+    if os.path.exists(path):
+        with open(path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode("utf-8")
+    return ""
+
 # ---------------------------------------------------------
-# SISTEM LOGIN
+# SISTEM LOGIN (UI/UX CUSTOM)
 # ---------------------------------------------------------
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
 def login_page():
-    st.markdown("<h1 style='text-align: center;'>IJV Crew Portal</h1>", unsafe_allow_html=True)
-    st.markdown("---")
+    bg_base64 = get_image_base64("bg.png")
+    ijv_logo_base64 = get_image_base64("IJV.png")
     
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
+    # Menghapus default padding Streamlit dan mengatur layout split-screen
+    st.markdown(f"""
+    <style>
+        /* Menghilangkan header & padding bawaan Streamlit */
+        .block-container {{
+            padding-top: 0rem !important;
+            padding-bottom: 0rem !important;
+            padding-left: 0rem !important;
+            padding-right: 0rem !important;
+            max-width: 100% !important;
+        }}
+        header, footer {{ visibility: hidden; }}
+        
+        /* Mengatur Tinggi Penuh */
+        .st-emotion-cache-1jicfl2, .st-emotion-cache-16txtl3 {{
+            padding: 0 !important;
+        }}
+
+        /* KOLOM KIRI (Form Login 30%) */
+        div[data-testid="column"]:nth-of-type(1) {{
+            background-color: #FFFFFF;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 8% 5% !important;
+            border-right: 1px solid #f0f0f0;
+            z-index: 10;
+        }}
+        
+        /* KOLOM KANAN (Gambar Background 70%) */
+        div[data-testid="column"]:nth-of-type(2) {{
+            background-image: url('data:image/png;base64,{bg_base64}');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #001F3F; /* Fallback color */
+            height: 100vh;
+            margin-left: -1rem; /* Menghilangkan gap default streamlit */
+        }}
+
+        /* Hapus border kotak form bawaan st.form */
+        div[data-testid="stForm"] {{
+            border: none !important;
+            padding: 0 !important;
+        }}
+
+        /* Styling Input Field */
+        .stTextInput input {{
+            border-radius: 4px !important;
+            border: 1px solid #d3d3d3 !important;
+        }}
+        
+        /* Styling Tombol Login (Warna Biru eCrew) */
+        div[data-testid="stForm"] button {{
+            background-color: #2196F3 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 4px !important;
+            font-weight: 500 !important;
+            padding: 0.5rem 1rem !important;
+        }}
+        div[data-testid="stForm"] button:hover {{
+            background-color: #1976D2 !important;
+        }}
+
+        /* Container untuk Logo di Kiri */
+        .login-logo {{
+            text-align: center;
+            margin-bottom: 40px;
+            margin-top: 20px;
+        }}
+        
+        /* Container untuk Footer di Kiri */
+        .login-footer {{
+            position: absolute;
+            bottom: 20px;
+            width: 90%;
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            font-family: Arial, sans-serif;
+        }}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Layouting: 1 Bagian kiri, 2.5 bagian kanan
+    col1, col2 = st.columns([1, 2.5])
+    
+    with col1:
+        # Menampilkan Logo IJV
+        if ijv_logo_base64:
+            st.markdown(f'<div class="login-logo"><img src="data:image/png;base64,{ijv_logo_base64}" style="max-height: 80px; width: auto;"></div>', unsafe_allow_html=True)
+        else:
+            st.markdown("<h2 style='text-align: center; color: #2196F3; margin-bottom:40px;'>IJV Crew</h2>", unsafe_allow_html=True)
+        
+        # Form Login
         with st.form("login_form"):
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            submit = st.form_submit_button("Login")
+            # label_visibility="collapsed" menyembunyikan tulisan di atas text box
+            username = st.text_input("Crew ID", placeholder="Crew ID", label_visibility="collapsed")
+            password = st.text_input("Password", type="password", placeholder="Password", label_visibility="collapsed")
+            submit = st.form_submit_button("Log in", use_container_width=True)
             
             if submit:
                 if password == "IJV123" and username != "":
@@ -195,12 +297,25 @@ def login_page():
                     st.session_state['username'] = username
                     st.rerun()
                 else:
-                    st.error("Username atau Password tidak valid!")
+                    st.error("Crew ID atau Password tidak valid!")
+        
+        # Tulisan Forgot Password
+        st.markdown("<div style='text-align: right; margin-top: -10px;'><a href='#' style='color: #2196F3; text-decoration: none; font-size: 13px; font-family: Arial, sans-serif;'>Forgot password?</a></div>", unsafe_allow_html=True)
+        
+        # Tulisan Web Footer 
+        st.markdown("<div class='login-footer'>www.indonesiajourneyvirtual.org</div>", unsafe_allow_html=True)
+
+    with col2:
+        # Kolom ini dikosongkan karena gambar dirender via CSS background (agar full layar)
+        st.empty()
 
 # ---------------------------------------------------------
 # DASHBOARD (GENERATOR OFP)
 # ---------------------------------------------------------
 def dashboard():
+    # Menampilkan ulang sidebar yang sempat kita sembunyikan di halaman login
+    st.markdown("<style>.block-container { padding: 3rem 5rem !important; } header {visibility: visible;} </style>", unsafe_allow_html=True)
+    
     st.sidebar.title(f"Welcome, {st.session_state.get('username', 'Crew')}")
     if st.sidebar.button("Logout"):
         st.session_state['logged_in'] = False
@@ -208,14 +323,9 @@ def dashboard():
 
     st.title("OFP & Briefing Package Generator")
     
-    # Membaca Logo untuk Template
+    # Membaca Logo untuk Template PDF (FDCGA.png)
     logo_path = "FDCGA.png"
-    logo_base64 = ""
-    if os.path.exists(logo_path):
-        with open(logo_path, "rb") as image_file:
-            logo_base64 = base64.b64encode(image_file.read()).decode("utf-8")
-    else:
-        st.warning(f"⚠️ File gambar '{logo_path}' tidak ditemukan di direktori proyek. Logo di PDF tidak akan termuat.")
+    logo_base64 = get_image_base64(logo_path)
 
     # KOTAK INPUT SIMBRIEF ID
     sb_userid = st.text_input("Masukkan SimBrief User ID:", value="656734")
@@ -241,9 +351,7 @@ def dashboard():
 
         with st.spinner("⚙️ Memproses data dan merender PDF..."):
             try:
-                # ==========================================
                 # 3. DATA PREPARATION
-                # ==========================================
                 data_obj = dict_to_obj(data_json)
                 
                 raw_alternates = data_obj.get('alternate', [])
