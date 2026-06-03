@@ -172,11 +172,11 @@ def php_str_pad(string, length, pad_char=' ', pad_type='left'):
 
 def php_wordwrap(text, width=60, break_str="\n"): return text
 
-# Helper render gambar lokal ke base64 (untuk web layout)
+# Helper render gambar lokal ke base64 (Aman dari multiline issue)
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode("utf-8")
+            return base64.b64encode(image_file.read()).decode("utf-8").replace('\n', '')
     return ""
 
 # ---------------------------------------------------------
@@ -191,24 +191,24 @@ def login_page():
     
     st.markdown(f"""
     <style>
-        /* 1. Paksa halaman penuh tanpa margin/padding */
+        /* 1. Paksa halaman penuh tanpa margin/padding bawaan Streamlit */
         .appview-container .main .block-container {{
             padding: 0rem !important;
             max-width: 100% !important;
             overflow: hidden !important;
         }}
-        header[data-testid="stHeader"] {{ visibility: hidden !important; height: 0 !important; }}
-        footer {{ visibility: hidden !important; }}
+        header[data-testid="stHeader"] {{ visibility: hidden !important; height: 0 !important; display: none !important; }}
+        footer {{ visibility: hidden !important; display: none !important; }}
         
-        /* 2. Mengatur Container Column agar tidak ada jeda */
-        div[data-testid="stHorizontalBlock"] {{
+        /* 2. Menghilangkan Gap Antar Kolom */
+        [data-testid="stHorizontalBlock"] {{
             gap: 0rem !important;
             height: 100vh !important;
             align-items: stretch !important;
         }}
         
-        /* 3. KOLOM KIRI (Form Putih) - Paksa prioritas tertinggi */
-        div[data-testid="column"]:nth-child(1) {{
+        /* 3. KOLOM KIRI (Form Putih) - Menggunakan 2 selektor untuk semua versi Streamlit */
+        [data-testid="column"]:nth-of-type(1), [data-testid="stColumn"]:nth-of-type(1) {{
             background-color: #FFFFFF !important;
             padding: 5% 4% !important;
             display: flex !important;
@@ -216,21 +216,23 @@ def login_page():
             justify-content: center !important;
             height: 100vh !important;
             z-index: 10;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 15px rgba(0,0,0,0.1);
         }}
         
         /* 4. KOLOM KANAN (Gambar Latar Belakang) */
-        div[data-testid="column"]:nth-child(2) {{
+        [data-testid="column"]:nth-of-type(2), [data-testid="stColumn"]:nth-of-type(2) {{
             background-image: url('data:image/png;base64,{bg_base64}') !important;
             background-size: cover !important;
             background-position: center !important;
             background-repeat: no-repeat !important;
-            background-color: #02203c !important; /* Warna backup jika gambar gagal muat */
+            background-color: #02203c !important; /* Biru Dongker jika gambar lambat/gagal muat */
             height: 100vh !important;
+            min-height: 100vh !important; /* Paksa minimal tinggi 100vh */
+            padding: 0 !important;
         }}
 
-        /* 5. Membersihkan Form Bawaan */
-        div[data-testid="stForm"] {{
+        /* 5. Membersihkan Form Bawaan Streamlit */
+        [data-testid="stForm"] {{
             border: none !important;
             padding: 0 !important;
             background-color: transparent !important;
@@ -241,20 +243,21 @@ def login_page():
             border: 1px solid #e0e0e0 !important;
             border-radius: 5px !important;
             padding: 0.6rem !important;
+            font-size: 14px !important;
         }}
         
-        /* 7. Tombol Biru Log in */
-        div[data-testid="stFormSubmitButton"] button {{
+        /* 7. Paksa Tombol Log In Menjadi Full Width dan Biru */
+        [data-testid="stFormSubmitButton"] button, .stButton button {{
             background-color: #2196F3 !important;
             color: white !important;
             border: none !important;
             border-radius: 5px !important;
             font-weight: bold !important;
             width: 100% !important;
-            padding: 0.5rem !important;
+            padding: 0.6rem !important;
             transition: background-color 0.3s;
         }}
-        div[data-testid="stFormSubmitButton"] button:hover {{
+        [data-testid="stFormSubmitButton"] button:hover, .stButton button:hover {{
             background-color: #1976D2 !important;
         }}
     </style>
@@ -264,14 +267,19 @@ def login_page():
     col1, col2 = st.columns([1, 2.5])
     
     with col1:
-        # Pendorong ke tengah (Top Spacer)
-        st.markdown("<div style='height: 15vh;'></div>", unsafe_allow_html=True)
+        # Spacer Atas
+        st.markdown("<div style='height: 10vh;'></div>", unsafe_allow_html=True)
         
-        # LOGO IJV
+        # LOGO IJV & TULISAN CREW PORTAL
         if ijv_logo_base64:
-            st.markdown(f'<div style="text-align: center; margin-bottom: 2rem;"><img src="data:image/png;base64,{ijv_logo_base64}" style="max-width: 180px;"></div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div style="text-align: center; margin-bottom: 2rem;">
+                <img src="data:image/png;base64,{ijv_logo_base64}" style="max-width: 180px;"><br>
+                <div style="font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; color: #333; margin-top: 10px;">Crew Portal</div>
+            </div>
+            """, unsafe_allow_html=True)
         else:
-            st.markdown("<h1 style='text-align: center; color: #2196F3; margin-bottom: 2rem;'>IJV Crew</h1>", unsafe_allow_html=True)
+            st.markdown("<h1 style='text-align: center; color: #2196F3; margin-bottom: 2rem;'>IJV Crew Portal</h1>", unsafe_allow_html=True)
         
         # FORM LOGIN
         with st.form("login_form"):
@@ -288,17 +296,17 @@ def login_page():
                     st.error("Crew ID atau Password tidak valid!")
         
         # Tulisan Lupa Password
-        st.markdown("<div style='text-align: right; margin-top: 5px;'><a href='#' style='color: #2196F3; text-decoration: none; font-size: 13px; font-family: sans-serif;'>Forgot password?</a></div>", unsafe_allow_html=True)
+        st.markdown("<div style='text-align: right; margin-top: 5px;'><a href='#' style='color: #2196F3; text-decoration: none; font-size: 13px; font-family: Arial, sans-serif;'>Forgot password?</a></div>", unsafe_allow_html=True)
         
-        # Pendorong Footer ke bawah (Bottom Spacer)
+        # Spacer Bawah
         st.markdown("<div style='height: 25vh;'></div>", unsafe_allow_html=True)
         
-        # Footer Web
-        st.markdown("<div style='text-align: center; font-size: 11px; color: #888; font-family: sans-serif;'>www.indonesiajourneyvirtual.org</div>", unsafe_allow_html=True)
+        # Footer Web di Kiri Bawah
+        st.markdown("<div style='text-align: center; font-size: 11px; color: #888; font-family: Arial, sans-serif;'>www.indonesiajourneyvirtual.org</div>", unsafe_allow_html=True)
 
     with col2:
-        # Kolom ini sengaja dikosongkan agar CSS bisa meletakkan background secara absolut
-        st.empty()
+        # PENTING: Jangan gunakan st.empty(). Beri div raksasa tak terlihat agar Streamlit menarik kolomnya selebar 100vh!
+        st.markdown("<div style='height: 100vh; width: 100%;'></div>", unsafe_allow_html=True)
 
 # ---------------------------------------------------------
 # DASHBOARD (GENERATOR OFP)
