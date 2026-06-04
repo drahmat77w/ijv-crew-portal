@@ -288,7 +288,7 @@ def login_page():
             submit = st.form_submit_button("Log in")
             
             if submit:
-                if password == "IJV123" and username != "":
+                if password == "IJV1" and username != "":
                     st.session_state['logged_in'] = True
                     st.session_state['username'] = username
                     st.rerun()
